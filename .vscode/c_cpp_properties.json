@@ -1,0 +1,30 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/lib/modules/6.14.0-33-generic/build/include",
+                "/lib/modules/6.14.0-33-generic/build/arch/x86/include",
+                "/lib/modules/6.14.0-33-generic/build/arch/x86/include/generated",
+                "/lib/modules/6.14.0-33-generic/build/include/generated",
+                "/lib/modules/6.14.0-33-generic/build/include/uapi",
+                "/lib/modules/6.14.0-33-generic/build/arch/x86/include/uapi",
+                "/lib/modules/6.14.0-33-generic/build/include/generated/uapi"
+            ],
+            "browse": {
+                "path": ["/lib/modules/6.14.0-33-generic/build"]
+            },
+            "defines": [
+                  "__KERNEL__",
+                  "MODULE",
+                  "KBUILD_MODNAME=\"vmemdev\""
+            ],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}

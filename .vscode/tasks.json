@@ -1,0 +1,34 @@
+{
+    "tasks": [
+        {
+            "label": "Build kernel module",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-lc",
+                "make -C /lib/modules/$(uname -r)/build M=${workspaceFolder} modules"
+            ],
+            "options": {
+                "cwd": "${fileDirname}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "디버거에서 생성된 작업입니다."
+        },
+        {
+            "label": "Clean kernel module",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-lc",
+                "make -C /lib/modules/$(uname -r)/build M=${workspaceFolder} clean"
+            ]
+        }
+    ],
+    "version": "2.0.0"
+}
