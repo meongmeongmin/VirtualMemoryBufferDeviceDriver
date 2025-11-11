@@ -45,18 +45,95 @@ static int vmemdev_release(struct inode *inode, struct file *filp)
     return 0;
 }
 
+/// @brief 디바이스 공간을 읽는다.
+/// @param filp 디바이스 공간
+/// @param ubuf 사용자 공간
+/// @param len 읽을 크기
+/// @param offset 읽을 위치
+/// @return 실제로 사용한 크기
 static ssize_t vmemdev_read(struct file *filp, char __user *ubuf, size_t len, loff_t *offset)
 {
+    struct vmemdev *dev = filp->private_data;
+
+    // EOF
+    if (*offset >= dev->size)
+        return 0;
+
+    // 실제로 읽을 수 있는 크기
+    size_t count = dev->size - *offset;
+    if (len > count)
+        len = count;
+
+    mutex_lock(&dev->lock);
+
+    // 디바이스 공간 -> 사용자 공간 복사
+    if (copy_to_user(ubuf, (dev->buf + *offset), len))
+        len = -EFAULT;  // 실패
+    else
+        *offset += len;
+
+    mutex_unlock(&dev->lock);
     return (ssize_t)len;
 }
 
+/// @brief 디바이스 공간을 쓴다.
+/// @param filp 디바이스 공간
+/// @param ubuf 사용자 공간
+/// @param len 쓸 크기
+/// @param offset 쓸 위치
+/// @return 실제로 사용한 크기
 static ssize_t vmemdev_write(struct file *filp, const char __user *ubuf, size_t len, loff_t *offset)
 {
+    struct vmemdev *dev = filp->private_data;
+
+    // EOF
+    if (*offset >= dev->size)
+        return 0;
+
+    // 실제로 쓸 수 있는 크기
+    size_t count = dev->size - *offset;
+    if (len > count)
+        len = count;
+
+    mutex_lock(&dev->lock);
+
+    // 사용자 공간 -> 디바이스 공간 복사
+    if (copy_from_user((dev->buf + *offset), ubuf, len))
+        len = -EFAULT;  // 실패
+    else 
+        *offset += len;
+
+    mutex_unlock(&dev->lock);
     return (ssize_t)len;
 }
 
+/// @brief 디바이스 공간 내 위치(포인터)를 이동한다.
+/// @param filp 디바이스 공간
+/// @param offset 이동 크기
+/// @param whence SEEK_SET, SEEK_CUR, SEEK_END 등의 옵션
+/// @return 이동한 위치
 static loff_t vmemdev_llseek(struct file *filp, loff_t offset, int whence)
 {
+    struct vmemdev *dev = filp->private_data;
+    switch (whence)
+    {
+        case SEEK_SET:
+            // 그대로
+            break;
+        case SEEK_CUR:
+            offset = filp->f_pos + offset; 
+            break;
+        case SEEK_END: 
+            offset = dev->size + offset; 
+            break;
+        default:
+            return -EINVAL;
+    }
+
+    if (offset < 0 || offset > dev->size)
+        return -EINVAL;
+
+    filp->f_pos = offset;
     return offset;
 }
 
@@ -69,7 +146,7 @@ static const struct file_operations vmemdev_fops = {
     .llseek  = vmemdev_llseek,
 };
 
-static int __init vmemdev_init()
+static int __init vmemdev_init(void)
 {
     int ret;
 
@@ -87,6 +164,7 @@ static int __init vmemdev_init()
     }
 
     vdev.size = (size_t)buf_size;
+    mutex_init(&vdev.lock);
 
     ret = alloc_chrdev_region(&vmemdev_devt, 0, 1, VMEMDEV_NAME);
     if (ret) 
@@ -134,7 +212,7 @@ static int __init vmemdev_init()
     return 0;
 }
 
-static void __exit vmemdev_exit()
+static void __exit vmemdev_exit(void)
 {
     device_destroy(vmemdev_class, vmemdev_devt);
     class_destroy(vmemdev_class);
